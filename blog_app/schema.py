@@ -26,21 +26,13 @@ class UpdateSchema(Schema):
         # author: str
 
 
-# class AuthorSchema(Schema):
-#     id: int
-#     username: str
-#     email: str
 
-# class CreatePostSchema(Schema):
-#     title: str
-#     content: str
-#     author: AuthorSchema
+class TokenSchema(Schema):
+        access_token:str
+        token_type:str="bearer"
 
-# class UserSchema(Schema):
-#     id: int
-#     username: str
-#     email: str
-
+class MessageSchema(Schema):
+        message:str
 
 
 

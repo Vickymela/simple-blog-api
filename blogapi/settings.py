@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'blog_app',
+    'ninja_jwt',
 ]
 
 MIDDLEWARE = [
@@ -116,3 +117,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+JWT_SECRET='django-insecure-4*6piv)6t0puekx4+l3ze4(ba&6nh%i5cjbpc(v43)wg8#emwz'
+JWT_ALGORITHM='HS256'
+JWT_EXP_DELTA_SECONDS=3600
