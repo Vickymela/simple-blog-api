@@ -1,0 +1,3 @@
+- Implement logout with token blacklisting.
+- Implement pagination on the read endpoint.
+- Clean up the code a bit - somethings shouldn't be in the api.py file.

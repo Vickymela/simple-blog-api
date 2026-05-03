@@ -1,4 +1,4 @@
-from ninja import NinjaAPI
+from ninja import NinjaAPI, Swagger
 from .schema import *
 from .models import Post
 from ninja.errors import HttpError
@@ -18,8 +18,6 @@ from datetime import datetime,timedelta
 User = get_user_model()
 
 
-
-
 class AuthBearer(HttpBearer):
     #tellin django every request must include a token
     #means the string is sent to the header
@@ -28,41 +26,23 @@ class AuthBearer(HttpBearer):
 
         try:
             payload = jwt.decode(token,settings.JWT_SECRET,algorithms=[settings.JWT_ALGORITHM])
-            user= User.objects.get(id=payload['user_id'])
+
+            user = User.objects.get(id=payload['user_id'])
             return user
         except jwt.ExpiredSignatureError:
             return None
         except(jwt.InvalidTokenError,User.DoesNotExist):
             return None
 
-
-        #     # CHATGPT|
-        #     #checks if token is valid and not expired
-        #     decoded = AccessToken(token)
-        #     decoded.verify()
-        #     print("TOKEN PAYLOAD:", decoded.payload)
-        #     #extracts user id stored in the token 
-        #     # token contains type,payload and signaature
-        #     #payload has the userid,eexpiration,created at,and custom data
-        #     user_id = decoded.payload.get("user_id")
-        #     print("USER ID:", user_id) 
-        #     user = User.objects.get(id=user_id)
-        #     return user
-        # #this becomes request.auth
-        # except Exception as e:
-        #     print("AUTH ERROR:" , str(e)) 
-        #     raise HttpError(401, "Invalid or expired token")
-        
         
 
-   
-main_api = NinjaAPI(auth=[django_auth,AuthBearer()])
+main_api = NinjaAPI(auth=[AuthBearer()], docs=Swagger(settings={"persistAuthorization": True}))
 #register users
 # login users 
 # logout users
 # STUDY THIS CODE AND UNDERSTAND HOW IT WORKS AND BE ABLE TO RECREATE OFF HEAD
 
-@main_api.post("register/",response={201:TokenSchema,400:MessageSchema})
+@main_api.post("register/",response={201:TokenSchema,400:MessageSchema}, auth=None)
 def register_users(request,user:userinputschema):
     if User.objects.filter(email=user.email).exists():
         raise HttpError(409,"this user already exists")
@@ -92,7 +72,7 @@ def create_token(user):
      return token
 
 
-@main_api.post("login/")
+@main_api.post("login/", auth=None)
 def login_user(request,user:userloginschema):
     verifed = authenticate(username=user.username,password=user.password)
     if verifed is None:
@@ -112,6 +92,8 @@ def login_user(request,user:userloginschema):
     # auth_login(request,verifed)
     # return {"username":user.username,
     #         "details":"login successful"}
+
+
 # @main_api.post("logout/")
 # def logout_user(request):
 #     if request.user.is_authenticated:
@@ -120,69 +102,50 @@ def login_user(request,user:userloginschema):
 #     return {"error":"not a logged in user"}
 
 
-@main_api.post("postblog/",auth=AuthBearer())
+@main_api.post("postblog/",auth=AuthBearer(), response=PostSchemaOutput)
 def createpost(request,post:PostSchemaInput):
     if Post.objects.filter(title=post.title).exists():
         raise HttpError(409,"this post already exits change the name ")
+    
     author = request.auth
     new_post = Post.objects.create(
         title = post.title,
         content = post.content,
         author = author
     )
-    # new_post.save()
-    return {"title": new_post.title,
-            "content": new_post.content,
-            "author": new_post.author.username,
-            "details":"post created sucessfully"}
+    return new_post
 
 
-
-
-@main_api.get("read/",auth=AuthBearer(),response=list[PostSchemaOutput])
+@main_api.get("read/", auth=AuthBearer(), response=list[PostSchemaOutput])
 def readposts(request):
-
-        user = request.auth
-        posts= Post.objects.filter(author=user)
-           
-        if not posts.exists():
-            raise HttpError(404,"no posts found")
-        return  [
-       {"title": p.title,"content": p.content,"author": p.author.username}  # just the name
-       for p in posts ] 
+    user = request.auth
+    posts = Post.objects.filter(author=user)
+        
+    if not posts.exists():
+        raise HttpError(404,"no posts found")
+    return posts
    
-
 
 # update
+@main_api.put("update_post/{id}/", response=PostSchemaOutput)
+def update_post(request, id:int,new_post:UpdateSchema):
+    post = Post.objects.filter(id=id,author=request.auth).first()
+    if not post:    
+        raise HttpError(409,"this post does not exist")
+    post.title = new_post.title
+    post.content = new_post.content
+    post.author = request.auth
+    post.save()
+    return post
+
+
 # delete
-
-@main_api.put("update_post/{old_title}/",auth=AuthBearer())
-def update_post(request,old_title:str,new_post:UpdateSchema):
-    
-        post = Post.objects.filter(title=old_title,author=request.auth).first()
-        if not post:    
-            raise HttpError(409,"this title does not exist")
-        post.title = new_post.title
-        post.content = new_post.content
-        post.author = request.auth
-        post.save()
-        return {
-                "details":"update sucessful",
-                "title":post.title,   
-                }
-
-       
-
-@main_api.delete("delete/{title}/",auth=AuthBearer())
-def delete_post(request,title:str):
-   
-        try:
-            post = Post.objects.get(title=title, author=request.auth)
-            post.delete()
-            return {"message": f"Deleted post '{title}' successfully"}
-        except Post.DoesNotExist:
-            return {"error": "Post not found or you do not have permission"}
-
-
-
+@main_api.delete("delete/{id}/",auth=AuthBearer())
+def delete_post(request, id:int):
+    try:
+        post = Post.objects.get(id=id, author=request.auth)
+        post.delete()
+        return {"message": f"Deleted post '{post.title}' successfully"}
+    except Post.DoesNotExist:
+        return {"error": "Post not found or you do not have permission"}
 

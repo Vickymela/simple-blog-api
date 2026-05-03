@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -121,3 +122,8 @@ STATIC_URL = 'static/'
 JWT_SECRET='django-insecure-4*6piv)6t0puekx4+l3ze4(ba&6nh%i5cjbpc(v43)wg8#emwz'
 JWT_ALGORITHM='HS256'
 JWT_EXP_DELTA_SECONDS=3600
+
+NINJA_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=12),  # default is ~5 mins
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+}
