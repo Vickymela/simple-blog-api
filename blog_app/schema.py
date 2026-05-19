@@ -9,6 +9,9 @@ class userinputschema(Schema):
     username:str
     email:str
     password:str
+    @staticmethod
+    def resolve_joined_txt(obj):
+        return id
 
 class userloginschema(Schema):
     username:str
@@ -41,8 +44,14 @@ class UpdateSchema(Schema):
 
 
 class TokenSchema(Schema):
+    id:int
     access_token:str
-    token_type:str="bearer"
+    username:str
+    email:str
+    # token_type:str="bearer"
 
 class MessageSchema(Schema):
     message:str
+    
+class LogoutSchema(Schema):
+    refresh:str

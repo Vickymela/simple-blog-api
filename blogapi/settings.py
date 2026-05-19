@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'blog_app',
     'ninja_jwt',
+    'ninja_jwt.token_blacklist',
 ]
 
 MIDDLEWARE = [
@@ -126,4 +127,8 @@ JWT_EXP_DELTA_SECONDS=3600
 NINJA_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=12),  # default is ~5 mins
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    
+    'ROTATE_REFRESH_TOKENS': True,      # Recommended: issue new refresh token on refresh
+    'BLACKLIST_AFTER_ROTATION': True,   # Automatically blacklist old refresh token
+
 }

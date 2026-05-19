@@ -1,19 +1,17 @@
 from ninja import NinjaAPI, Swagger
 from .schema import *
-from .models import Post
+from .models import Post,BlackListedToken
 from ninja.errors import HttpError
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import authenticate, login as auth_login
 from django.contrib.auth import logout
-#to create token 
-
 from ninja_jwt.tokens import RefreshToken, AccessToken
-# to read token from header
 from ninja.security import HttpBearer,django_auth
 import jwt
 from django.conf import settings
 from datetime import datetime,timedelta
+from ninja.pagination import paginate, PageNumberPagination
 
 User = get_user_model()
 
@@ -23,6 +21,11 @@ class AuthBearer(HttpBearer):
     #means the string is sent to the header
     def authenticate(self, request, token):
         print("TOKEN RECEIVED:", token[:30])
+
+        # 1. Check if this token is blacklisted
+        if BlackListedToken.objects.filter(token=token).exists():
+            return None  # reject it
+
 
         try:
             payload = jwt.decode(token,settings.JWT_SECRET,algorithms=[settings.JWT_ALGORITHM])
@@ -37,10 +40,7 @@ class AuthBearer(HttpBearer):
         
 
 main_api = NinjaAPI(auth=[AuthBearer()], docs=Swagger(settings={"persistAuthorization": True}))
-#register users
-# login users 
-# logout users
-# STUDY THIS CODE AND UNDERSTAND HOW IT WORKS AND BE ABLE TO RECREATE OFF HEAD
+
 
 @main_api.post("register/",response={201:TokenSchema,400:MessageSchema}, auth=None)
 def register_users(request,user:userinputschema):
@@ -56,8 +56,9 @@ def register_users(request,user:userinputschema):
         # password=make_password(user.password)
         password=user.password
     )
-    token=create_token(user)
+    token=create_token(new_user)
     return 201,{"username": new_user.username,
+            "id": new_user.id,
             "email":new_user.email,
             "access_token":token,
             "detail":"registeration sucessful"}
@@ -89,17 +90,23 @@ def login_user(request,user:userloginschema):
     }
     
 
-    # auth_login(request,verifed)
-    # return {"username":user.username,
-    #         "details":"login successful"}
+@main_api.post("logout/")
+def logout(request):
+    # Get the token from the Authorization header
+    token = request.auth  # Django Ninja puts the decoded payload here
+    
+    # But we need the raw token string — get it from the header
+    raw_token = request.headers.get("Authorization").replace("Bearer ", "")
+    
+    # Save it to the blacklist
+    BlackListedToken.objects.get_or_create(token=raw_token)
+    
+    return {"message": "Logged out successfully"}
 
 
-# @main_api.post("logout/")
-# def logout_user(request):
-#     if request.user.is_authenticated:
-#         logout(request)
-#         return {"details":"logout sucessful"}
-#     return {"error":"not a logged in user"}
+
+   
+    
 
 
 @main_api.post("postblog/",auth=AuthBearer(), response=PostSchemaOutput)
@@ -117,9 +124,12 @@ def createpost(request,post:PostSchemaInput):
 
 
 @main_api.get("read/", auth=AuthBearer(), response=list[PostSchemaOutput])
+@paginate(PageNumberPagination, page_size=3)
 def readposts(request):
     user = request.auth
-    posts = Post.objects.filter(author=user)
+    posts = Post.objects.filter(author=user).order_by('id')
+   
+    
         
     if not posts.exists():
         raise HttpError(404,"no posts found")
