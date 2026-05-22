@@ -8,8 +8,8 @@ from ninja.pagination import paginate, PageNumberPagination
 main_api = Router(tags=["Posts"])
 
 
-@main_api.post("postblog/", response=PostSchemaOutput)
-def createpost(request,post:PostSchemaInput):
+@main_api.post("/", response=PostSchemaOutput)
+def create_post(request,post:PostSchemaInput):
     if Post.objects.filter(title=post.title).exists():
         raise HttpError(409,"this post already exits change the name ")
     
@@ -22,9 +22,9 @@ def createpost(request,post:PostSchemaInput):
     return new_post
 
 
-@main_api.get("read/", response=list[PostSchemaOutput])
+@main_api.get("/", response=list[PostSchemaOutput])
 @paginate(PageNumberPagination, page_size=3)
-def readposts(request):
+def read_posts(request):
     user = request.auth
     posts = Post.objects.filter(author=user).order_by('id')
         
@@ -34,7 +34,7 @@ def readposts(request):
 
 
 # update
-@main_api.put("update_post/{id}/", response=PostSchemaOutput)
+@main_api.put("/{id}/", response=PostSchemaOutput)
 def update_post(request, id:int,new_post:UpdateSchema):
     post = Post.objects.filter(id=id,author=request.auth).first()
     if not post:    
@@ -47,7 +47,7 @@ def update_post(request, id:int,new_post:UpdateSchema):
 
 
 # delete
-@main_api.delete("delete/{id}/")
+@main_api.delete("/{id}/")
 def delete_post(request, id:int):
     try:
         post = Post.objects.get(id=id, author=request.auth)

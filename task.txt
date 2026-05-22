@@ -1,3 +1,24 @@
 ^- Implement logout with token blacklisting.
 ^- Implement pagination on the read endpoint.
 ^- Clean up the code a bit - somethings shouldn't be in the api.py file.
+
+-=-=-=-
+
+IMPLEMENT THIS:
+
+- Change password: 
+1. To change a users password they most be authenticated
+2. The current password must match what is on the db (when we compare the hash)
+3. Collect the new password they want to change to and update it
+
+-=-=-=-
+
+- Forgot password (With OTP Code)
+1. Collect the email and if it exists send them an OTP code (using a random function)
+2. Save the the OTP code and datetime it will expire.
+
+-=-=-=-
+
+- Reset password
+1. Collect the email, new password and code then varify that the code valid before the updating the password
+2. Also count the number of attempts made and limit it. 

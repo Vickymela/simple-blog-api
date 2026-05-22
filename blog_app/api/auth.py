@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate
 from ninja_jwt.tokens import RefreshToken
 import jwt
 from django.conf import settings
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 
 
 User = get_user_model()
@@ -19,9 +19,11 @@ main_api = Router(tags=["Authentication"])
 def register_users(request,user:userinputschema):
     if User.objects.filter(email=user.email).exists():
         raise HttpError(409,"this user already exists")
+    
     #django default user makes username unique
     if User.objects.filter(username=user.username).exists():
         raise HttpError(409,"this user already exists")
+    
     new_user = User.objects.create_user(
         username = user.username,
         email=user.email,
@@ -75,4 +77,3 @@ def logout(request):
     BlackListedToken.objects.get_or_create(token=raw_token)
     
     return {"message": "Logged out successfully"}
- 
