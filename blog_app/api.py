@@ -1,6 +1,6 @@
 from ninja import NinjaAPI, Swagger
 from .schema import *
-from .models import Post,BlackListedToken
+from .models import Post,BlackListedToken,OTP
 from ninja.errors import HttpError
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
@@ -12,6 +12,9 @@ import jwt
 from django.conf import settings
 from datetime import datetime,timedelta
 from ninja.pagination import paginate, PageNumberPagination
+import secrets
+from django.utils import timezone
+
 
 User = get_user_model()
 
@@ -42,6 +45,18 @@ class AuthBearer(HttpBearer):
 main_api = NinjaAPI(auth=[AuthBearer()], docs=Swagger(settings={"persistAuthorization": True}))
 
 
+
+def create_token(user):
+     exp = datetime.now() + timedelta(seconds=settings.JWT_EXP_DELTA_SECONDS)
+     payload= {
+          'user_id':user.id,
+          'exp':exp
+     }
+     token =jwt.encode(payload,settings.JWT_SECRET,algorithm=settings.JWT_ALGORITHM)
+     return token
+
+
+
 @main_api.post("register/",response={201:TokenSchema,400:MessageSchema}, auth=None)
 def register_users(request,user:userinputschema):
     if User.objects.filter(email=user.email).exists():
@@ -63,21 +78,12 @@ def register_users(request,user:userinputschema):
             "access_token":token,
             "detail":"registeration sucessful"}
 
-def create_token(user):
-     exp = datetime.now() + timedelta(seconds=settings.JWT_EXP_DELTA_SECONDS)
-     payload= {
-          'user_id':user.id,
-          'exp':exp
-     }
-     token =jwt.encode(payload,settings.JWT_SECRET,algorithm=settings.JWT_ALGORITHM)
-     return token
-
 
 @main_api.post("login/", auth=None)
 def login_user(request,user:userloginschema):
     verifed = authenticate(username=user.username,password=user.password)
     if verifed is None:
-        raise HttpError(409,"this is not a user please login")
+        raise HttpError(409,"incorrect credentials")
     
     #creates token for the user
     refresh = RefreshToken.for_user(verifed)
@@ -103,11 +109,57 @@ def logout(request):
     
     return {"message": "Logged out successfully"}
 
+####################################################################
+
+@main_api.put("change_password/",response=MessageSchema)
+def change_password(request,current_password:str,new_password:str):
+        user= request.auth
+        if not user.check_password(current_password):
+            return {"message":"this password is incorrect"}
+        user.set_password(new_password)
+        user.save()
+        return {"message":"password changed successfully"}
+        
+@main_api.get("Reset_password/")
+def Reset_Password(request,email:str,new_password:str,otp_code:int):
+      if not OTP.objects.filter(user=request.auth,code=otp_code).exists():
+          return {"message":"Invalid OTP"}
+      if otp_code.is_expired():
+        return {"meessage":"this otp is expired"}
+      if OTP.objects.filter(user=request.auth,code=otp_code).exists():
+        user = request.auth
+        user.set_password(new_password)
+        user.save()
+        return {"message":"password reset successful"}
+      
 
 
-   
+
+
+
+@main_api.get("forgot_password/")
+def forgot_password(request,user_email:str):
+    if not User.objects.filter(email=user_email).first():
+        return {"message": "this user does not exist"}
+    otp_code= OTP.generate_otp()
+    user = request.auth
+    otp = OTP.objects.create(
+        user=user,
+        code=otp_code
+    )
+    
+    print(f"OTP for {user_email}: {otp}")
+
+  
+    return {"message": "OTP sent to your email"} 
     
 
+    
+
+        
+
+    
+#####################################################################
 
 @main_api.post("postblog/",auth=AuthBearer(), response=PostSchemaOutput)
 def createpost(request,post:PostSchemaInput):

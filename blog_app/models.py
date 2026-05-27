@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-
+from django.utils import timezone
+from datetime import timedelta
 
 User = get_user_model()
 
@@ -18,3 +19,21 @@ class BlackListedToken(models.Model):
 
     def __str__(self):
         return self.token
+
+class OTP(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    code = models.IntegerField()
+    date_created = models.DateField(auto_now=False, auto_now_add=True)
+     
+    def __str__(self):
+        return self.user
+    
+    @staticmethod
+    def generate_otp():
+        import secrets
+        otp = secrets.randbelow(900000) + 100000
+        return otp
+    @staticmethod
+    def is_expired(otp):
+         return timezone.now() > otp.created_at + timedelta(minutes=5)
+
