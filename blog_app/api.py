@@ -120,23 +120,8 @@ def change_password(request,current_password:str,new_password:str):
         user.save()
         return {"message":"password changed successfully"}
         
-@main_api.get("Reset_password/")
-def Reset_Password(request,email:str,new_password:str,otp_code:int):
-      if not OTP.objects.filter(user=request.auth,code=otp_code).exists():
-          return {"message":"Invalid OTP"}
-      if otp_code.is_expired():
-        return {"meessage":"this otp is expired"}
-      if OTP.objects.filter(user=request.auth,code=otp_code).exists():
-        user = request.auth
-        user.set_password(new_password)
-        user.save()
-        return {"message":"password reset successful"}
+
       
-
-
-
-
-
 @main_api.get("forgot_password/")
 def forgot_password(request,user_email:str):
     if not User.objects.filter(email=user_email).first():
@@ -148,13 +133,24 @@ def forgot_password(request,user_email:str):
         code=otp_code
     )
     
-    print(f"OTP for {user_email}: {otp}")
+    print(f"OTP for {user_email}: {otp.code}")
 
   
     return {"message": "OTP sent to your email"} 
     
 
-    
+@main_api.get("Reset_password/")
+def Reset_Password(request,email:str,new_password:str,otp_code:int):
+      if not OTP.objects.filter(user=request.auth,code=otp_code).exists():
+          return {"message":"Invalid OTP"}
+      otp_obj = OTP.objects.get(code=otp_code)
+      if otp_obj.is_expired():
+        return {"meessage":"this otp is expired"}
+      if OTP.objects.filter(user=request.auth,code=otp_code).exists():
+        user = request.auth
+        user.set_password(new_password)
+        user.save()
+        return {"message":"password reset successful"}  
 
         
 
