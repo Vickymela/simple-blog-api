@@ -25,3 +25,8 @@ IMPLEMENT THIS:
 - Reset password
 1. Collect the email, new password and code then varify that the code valid before the updating the password
 2. Also count the number of attempts made and limit it.
+
+-=-=-=-
+
+1. Add rate limiting to the endpoints with redis
+2. Use redis for caching on the read posts endpoint (make it expire in 10 minutes)

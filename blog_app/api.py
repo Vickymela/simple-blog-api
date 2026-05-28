@@ -121,13 +121,13 @@ def change_password(request,current_password:str,new_password:str):
         return {"message":"password changed successfully"}
         
 
-      
-@main_api.get("forgot_password/")
-def forgot_password(request,user_email:str):
-    if not User.objects.filter(email=user_email).first():
-        return {"message": "this user does not exist"}
+@main_api.post("forgot_password/", auth=None, response=MessageSchema)
+def forgot_password(request, user_email:str):
+    user = User.objects.filter(email=user_email).first()
+    if not user:
+        return 404, {"message": "this user does not exist"}
+    
     otp_code= OTP.generate_otp()
-    user = request.auth
     otp = OTP.objects.create(
         user=user,
         code=otp_code
@@ -135,24 +135,27 @@ def forgot_password(request,user_email:str):
     
     print(f"OTP for {user_email}: {otp.code}")
 
-  
     return {"message": "OTP sent to your email"} 
     
 
-@main_api.get("Reset_password/")
-def Reset_Password(request,email:str,new_password:str,otp_code:int):
-      if not OTP.objects.filter(user=request.auth,code=otp_code).exists():
-          return {"message":"Invalid OTP"}
-      otp_obj = OTP.objects.get(code=otp_code)
-      if otp_obj.is_expired():
-        return {"meessage":"this otp is expired"}
-      if OTP.objects.filter(user=request.auth,code=otp_code).exists():
-        user = request.auth
+@main_api.post("reset_password/", auth=None, response={200:MessageSchema,400:MessageSchema,404:MessageSchema, 429:MessageSchema})
+def reset_Password(request, email:str, new_password:str, otp_code:int):
+    user = User.objects.filter(email=email).first()
+    if not user:
+        return 404, {"message":"this user does not exist"}
+    
+    if not OTP.objects.filter(user=user,code=otp_code).exists():
+        return 400, {"message":"Invalid OTP"}
+    
+    otp_obj = OTP.objects.get(code=otp_code)
+    if otp_obj.is_expired():
+        return 400, {"meessage":"this otp is expired"}
+    
+    if OTP.objects.filter(user=user,code=otp_code).exists():
+        user = user
         user.set_password(new_password)
         user.save()
-        return {"message":"password reset successful"}  
-
-        
+    return 200, {"message":"password reset successful"}  
 
     
 #####################################################################
@@ -175,10 +178,9 @@ def createpost(request,post:PostSchemaInput):
 @paginate(PageNumberPagination, page_size=3)
 def readposts(request):
     user = request.auth
+
     posts = Post.objects.filter(author=user).order_by('id')
-   
-    
-        
+
     if not posts.exists():
         raise HttpError(404,"no posts found")
     return posts
@@ -206,4 +208,3 @@ def delete_post(request, id:int):
         return {"message": f"Deleted post '{post.title}' successfully"}
     except Post.DoesNotExist:
         return {"error": "Post not found or you do not have permission"}
-
