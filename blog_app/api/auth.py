@@ -1,49 +1,19 @@
-from ninja import NinjaAPI, Swagger
-from .schema import *
-from .models import Post,BlackListedToken,OTP
+from ninja import Router
+from ..schema import *
+from ..models import BlackListedToken,OTP
 from ninja.errors import HttpError
 from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth import authenticate, login as auth_login
-from django.contrib.auth import logout
-from ninja_jwt.tokens import RefreshToken, AccessToken
-from ninja.security import HttpBearer,django_auth
+from django.contrib.auth import authenticate
+from ninja_jwt.tokens import RefreshToken
 import jwt
 from django.conf import settings
 from datetime import datetime,timedelta
-from ninja.pagination import paginate, PageNumberPagination
-import secrets
-from django.utils import timezone
 
 
 User = get_user_model()
 
 
-class AuthBearer(HttpBearer):
-    #tellin django every request must include a token
-    #means the string is sent to the header
-    def authenticate(self, request, token):
-        print("TOKEN RECEIVED:", token[:30])
-
-        # 1. Check if this token is blacklisted
-        if BlackListedToken.objects.filter(token=token).exists():
-            return None  # reject it
-
-
-        try:
-            payload = jwt.decode(token,settings.JWT_SECRET,algorithms=[settings.JWT_ALGORITHM])
-
-            user = User.objects.get(id=payload['user_id'])
-            return user
-        except jwt.ExpiredSignatureError:
-            return None
-        except(jwt.InvalidTokenError,User.DoesNotExist):
-            return None
-
-        
-
-main_api = NinjaAPI(auth=[AuthBearer()], docs=Swagger(settings={"persistAuthorization": True}))
-
+auth_api = Router(tags=["auth"])
 
 
 def create_token(user):
@@ -57,7 +27,7 @@ def create_token(user):
 
 
 
-@main_api.post("register/",response={201:TokenSchema,400:MessageSchema}, auth=None)
+@auth_api.post("register/",response={201:TokenSchema,400:MessageSchema}, auth=None)
 def register_users(request,user:userinputschema):
     if User.objects.filter(email=user.email).exists():
         raise HttpError(409,"this user already exists")
@@ -79,7 +49,7 @@ def register_users(request,user:userinputschema):
             "detail":"registeration sucessful"}
 
 
-@main_api.post("login/", auth=None)
+@auth_api.post("login/", auth=None)
 def login_user(request,user:userloginschema):
     verifed = authenticate(username=user.username,password=user.password)
     if verifed is None:
@@ -96,7 +66,7 @@ def login_user(request,user:userloginschema):
     }
     
 
-@main_api.post("logout/")
+@auth_api.post("logout/")
 def logout(request):
     # Get the token from the Authorization header
     token = request.auth  # Django Ninja puts the decoded payload here
@@ -111,7 +81,7 @@ def logout(request):
 
 ####################################################################
 
-@main_api.put("change_password/",response=MessageSchema)
+@auth_api.put("change_password/",response=MessageSchema)
 def change_password(request,current_password:str,new_password:str):
         user= request.auth
         if not user.check_password(current_password):
@@ -121,7 +91,7 @@ def change_password(request,current_password:str,new_password:str):
         return {"message":"password changed successfully"}
         
 
-@main_api.post("forgot_password/", auth=None, response=MessageSchema)
+@auth_api.post("forgot_password/", auth=None, response=MessageSchema)
 def forgot_password(request, user_email:str):
     user = User.objects.filter(email=user_email).first()
     if not user:
@@ -138,7 +108,7 @@ def forgot_password(request, user_email:str):
     return {"message": "OTP sent to your email"} 
     
 
-@main_api.post("reset_password/", auth=None, response={200:MessageSchema,400:MessageSchema,404:MessageSchema, 429:MessageSchema})
+@auth_api.post("reset_password/", auth=None, response={200:MessageSchema,400:MessageSchema,404:MessageSchema, 429:MessageSchema})
 def reset_Password(request, email:str, new_password:str, otp_code:int):
     user = User.objects.filter(email=email).first()
     if not user:
@@ -156,55 +126,3 @@ def reset_Password(request, email:str, new_password:str, otp_code:int):
         user.set_password(new_password)
         user.save()
     return 200, {"message":"password reset successful"}  
-
-    
-#####################################################################
-
-@main_api.post("postblog/",auth=AuthBearer(), response=PostSchemaOutput)
-def createpost(request,post:PostSchemaInput):
-    if Post.objects.filter(title=post.title).exists():
-        raise HttpError(409,"this post already exits change the name ")
-    
-    author = request.auth
-    new_post = Post.objects.create(
-        title = post.title,
-        content = post.content,
-        author = author
-    )
-    return new_post
-
-
-@main_api.get("read/", auth=AuthBearer(), response=list[PostSchemaOutput])
-@paginate(PageNumberPagination, page_size=3)
-def readposts(request):
-    user = request.auth
-
-    posts = Post.objects.filter(author=user).order_by('id')
-
-    if not posts.exists():
-        raise HttpError(404,"no posts found")
-    return posts
-   
-
-# update
-@main_api.put("update_post/{id}/", response=PostSchemaOutput)
-def update_post(request, id:int,new_post:UpdateSchema):
-    post = Post.objects.filter(id=id,author=request.auth).first()
-    if not post:    
-        raise HttpError(409,"this post does not exist")
-    post.title = new_post.title
-    post.content = new_post.content
-    post.author = request.auth
-    post.save()
-    return post
-
-
-# delete
-@main_api.delete("delete/{id}/",auth=AuthBearer())
-def delete_post(request, id:int):
-    try:
-        post = Post.objects.get(id=id, author=request.auth)
-        post.delete()
-        return {"message": f"Deleted post '{post.title}' successfully"}
-    except Post.DoesNotExist:
-        return {"error": "Post not found or you do not have permission"}
