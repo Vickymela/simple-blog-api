@@ -16,7 +16,8 @@ from datetime import datetime,timedelta
 from ninja.pagination import paginate, PageNumberPagination
 import secrets
 from django.utils import timezone
-
+import redis
+import json
 
 User = get_user_model()
 
@@ -37,15 +38,40 @@ def createpost(request,post:PostSchemaInput):
 
 
 @post_api.get("read/", response=list[PostSchemaOutput])
-@paginate(PageNumberPagination, page_size=3)
+# @paginate(PageNumberPagination, page_size=3)
 def readposts(request):
     user = request.auth
+    r = redis.Redis(host='localhost',port=6379,db=0,decode_responses=True)
+    cache_key= f"user_posts_{user.id}"
+    cached_post= r.get(cache_key)
+    if cached_post:
+        return json.loads(cached_post)
+    print("Returned from Database")
 
     posts = Post.objects.filter(author=user).order_by('id')
 
     if not posts.exists():
         raise HttpError(404,"no posts found")
-    return posts
+
+    # Convert the QuerySet into a list of dictionaries
+    posts_data = list(
+        posts.values(
+            "id",
+            "title",
+            "content"
+        )
+    )
+
+    # Store the posts in Redis for 60 seconds
+    r.set(
+        cache_key,
+        json.dumps(posts_data),
+        ex=60
+    )
+
+    # Return the posts
+    return posts_data
+   
    
 
 # update
@@ -70,3 +96,4 @@ def delete_post(request, id:int):
         return {"message": f"Deleted post '{post.title}' successfully"}
     except Post.DoesNotExist:
         return {"error": "Post not found or you do not have permission"}
+

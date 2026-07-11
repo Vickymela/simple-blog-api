@@ -26,11 +26,11 @@ class PostSchemaOutput(Schema):
     title: str
     content: str
     author: Optional[str] = None
-    joined_txt: str
+    # joined_txt: str
 
-    @staticmethod
-    def resolve_joined_txt(obj):
-        return f"{obj.title} - {obj.content}"
+    # @staticmethod
+    # def resolve_joined_txt(obj):
+    #     return f"{obj.title} - {obj.content}"
 
     @staticmethod
     def resolve_author(obj):

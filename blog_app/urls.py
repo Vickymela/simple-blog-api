@@ -11,4 +11,4 @@ main_api = NinjaAPI(auth=[AuthBearer()], docs=Swagger(settings={"persistAuthoriz
 
 main_api.add_router("/auth/", router=auth_api)
 main_api.add_router("/posts/", router=post_api)
-main_api.add_router("/subscriptions/", router=sub_api)
+# main_api.add_router("/subscriptions/", router=sub_api)

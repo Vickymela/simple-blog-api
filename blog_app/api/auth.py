@@ -56,11 +56,11 @@ def login_user(request,user:userloginschema):
         raise HttpError(409,"incorrect credentials")
     
     #creates token for the user
-    refresh = RefreshToken.for_user(verifed)
+   
+    token=create_token(verifed)
 
     return {
-        "access": str(refresh.access_token),
-        "refresh": str(refresh),
+        "access_token": token,
         "detail":"login sucessful",
         "username": verifed.username
     }

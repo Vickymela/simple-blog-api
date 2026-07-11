@@ -22,6 +22,11 @@ class AuthBearer(HttpBearer):
             user = User.objects.get(id=payload['user_id'])
             return user
         except jwt.ExpiredSignatureError:
+            print("REJECTED:Token has expired")
             return None
-        except(jwt.InvalidTokenError,User.DoesNotExist):
+        except jwt.InvalidTokenError as e:
+            print("REJECTED:Invalid token - ",e)
+            return None
+        except User.DoesNotExist:
+            print("REJECTED:User does not exist")
             return None
