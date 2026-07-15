@@ -42,6 +42,10 @@ class UpdateSchema(Schema):
     content: str
     # author: str
 
+class SearchSchemaOutput(Schema):
+    title: str
+    content: str
+    author: Optional[str] = None
 
 class TokenSchema(Schema):
     id:int

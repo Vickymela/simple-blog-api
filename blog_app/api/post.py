@@ -97,3 +97,8 @@ def delete_post(request, id:int):
     except Post.DoesNotExist:
         return {"error": "Post not found or you do not have permission"}
 
+#search
+@post_api.get("serach/{title}/",response=list[PostSchemaOutput])
+def search_post(request,q:str):
+    return Post.objects.filter(title__icontains=q)
+
