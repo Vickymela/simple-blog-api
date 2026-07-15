@@ -88,6 +88,24 @@ def change_password(request,current_password:str,new_password:str):
         return {"message":"password changed successfully"}
         
 
+@auth_api.put("update_profile/", response={200:ProfileSchema,409:MessageSchema})
+def update_profile(request, data:UpdateProfileSchema):
+    user = request.auth
+
+    if data.username is not None and data.username != user.username:
+        if User.objects.filter(username=data.username).exclude(id=user.id).exists():
+            return 409, {"message":"this username is already taken"}
+        user.username = data.username
+
+    if data.email is not None and data.email != user.email:
+        if User.objects.filter(email=data.email).exclude(id=user.id).exists():
+            return 409, {"message":"this email is already taken"}
+        user.email = data.email
+
+    user.save()
+    return 200, {"id": user.id, "username": user.username, "email": user.email}
+
+
 @auth_api.post("forgot_password/", auth=None, response=MessageSchema)
 def forgot_password(request, user_email:str):
     user = User.objects.filter(email=user_email).first()

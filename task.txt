@@ -31,14 +31,13 @@ IMPLEMENT THIS:
 1. Add rate limiting to the endpoints with redis
 2. Use redis for caching on the read posts endpoint (make it expire in 10 minutes)
 
-
 -=-=-=-
 
-- Use React/JS (Frontend) and Python Django (Backend)
-- Integrate Payments (Paystack - test payments)
-- Multi vendor ecommerce site (Different vendors can signup and add products)
-- Vendors can add new products and see orders
-- Users can see products, add to cart, order and pay (test payment - fake money)
-- Maybe use Render or Koyeb (use the free plan). Use Vercel for frontend.
+- Build a simple legal advise platform 
+- Basically users post the issues/case they have and using Openai api/sdk we respond to them
+- As an added feature integrate payment (Paystack - Test payments) 
+- Add signup and login
+- Allow users create 3 issues without being forced to pay
+- On the dashboard page add a create new issue button that leads to a page where they can create a new issue (then we use ai to read the issue and respond to them)
 
 - PRD - Describes what you want to build

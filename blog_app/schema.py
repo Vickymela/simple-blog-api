@@ -45,6 +45,15 @@ class TokenSchema(Schema):
     username:str
     email:str
 
+class UpdateProfileSchema(Schema):
+    username: Optional[str] = None
+    email: Optional[str] = None
+
+class ProfileSchema(Schema):
+    id: int
+    username: str
+    email: str
+
 class MessageSchema(Schema):
     message:str
     
