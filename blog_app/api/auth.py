@@ -4,7 +4,6 @@ from ..models import BlackListedToken,OTP
 from ninja.errors import HttpError
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
-from ninja_jwt.tokens import RefreshToken
 import jwt
 from django.conf import settings
 from datetime import datetime,timedelta
@@ -37,8 +36,6 @@ def register_users(request,user:userinputschema):
     new_user = User.objects.create_user(
         username = user.username,
         email=user.email,
-        #this is correct but create user already hashes password
-        # password=make_password(user.password)
         password=user.password
     )
     token=create_token(new_user)

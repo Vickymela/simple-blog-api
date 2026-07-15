@@ -1,21 +1,10 @@
-from ninja import NinjaAPI, Router, Swagger
+from ninja import Router
 
 from blog_app.urls import AuthBearer
 from ..schema import *
-from ..models import Post,BlackListedToken,OTP
+from ..models import Post
 from ninja.errors import HttpError
 from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth import authenticate, login as auth_login
-from django.contrib.auth import logout
-from ninja_jwt.tokens import RefreshToken, AccessToken
-from ninja.security import HttpBearer,django_auth
-import jwt
-from django.conf import settings
-from datetime import datetime,timedelta
-from ninja.pagination import paginate, PageNumberPagination
-import secrets
-from django.utils import timezone
 import redis
 import json
 
@@ -38,7 +27,6 @@ def createpost(request,post:PostSchemaInput):
 
 
 @post_api.get("read/", response=list[PostSchemaOutput])
-# @paginate(PageNumberPagination, page_size=3)
 def readposts(request):
     user = request.auth
     r = redis.Redis(host='localhost',port=6379,db=0,decode_responses=True)
@@ -74,7 +62,6 @@ def readposts(request):
    
    
 
-# update
 @post_api.put("update_post/{id}/", response=PostSchemaOutput)
 def update_post(request, id:int,new_post:UpdateSchema):
     post = Post.objects.filter(id=id,author=request.auth).first()
@@ -87,7 +74,6 @@ def update_post(request, id:int,new_post:UpdateSchema):
     return post
 
 
-# delete
 @post_api.delete("delete/{id}/",auth=AuthBearer())
 def delete_post(request, id:int):
     try:
@@ -97,7 +83,6 @@ def delete_post(request, id:int):
     except Post.DoesNotExist:
         return {"error": "Post not found or you do not have permission"}
 
-#search
 @post_api.get("serach/{title}/",response=list[PostSchemaOutput])
 def search_post(request,q:str):
     return Post.objects.filter(title__icontains=q)

@@ -1,8 +1,6 @@
 from typing import Optional
 
-from ninja import Schema,ModelSchema
-
-from .models import Post
+from ninja import Schema
 
 
 class userinputschema(Schema):
@@ -26,11 +24,6 @@ class PostSchemaOutput(Schema):
     title: str
     content: str
     author: Optional[str] = None
-    # joined_txt: str
-
-    # @staticmethod
-    # def resolve_joined_txt(obj):
-    #     return f"{obj.title} - {obj.content}"
 
     @staticmethod
     def resolve_author(obj):
@@ -40,7 +33,6 @@ class PostSchemaOutput(Schema):
 class UpdateSchema(Schema):
     title: str
     content: str
-    # author: str
 
 class SearchSchemaOutput(Schema):
     title: str
@@ -52,7 +44,6 @@ class TokenSchema(Schema):
     access_token:str
     username:str
     email:str
-    # token_type:str="bearer"
 
 class MessageSchema(Schema):
     message:str

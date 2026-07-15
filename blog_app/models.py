@@ -5,7 +5,7 @@ from datetime import timedelta
 
 User = get_user_model()
 
-# Create your models here.
+
 class Post(models.Model):
     title = models.CharField(max_length=350)
     content = models.TextField()

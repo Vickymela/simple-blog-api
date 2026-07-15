@@ -30,3 +30,15 @@ IMPLEMENT THIS:
 
 1. Add rate limiting to the endpoints with redis
 2. Use redis for caching on the read posts endpoint (make it expire in 10 minutes)
+
+
+-=-=-=-
+
+- Use React/JS (Frontend) and Python Django (Backend)
+- Integrate Payments (Paystack - test payments)
+- Multi vendor ecommerce site (Different vendors can signup and add products)
+- Vendors can add new products and see orders
+- Users can see products, add to cart, order and pay (test payment - fake money)
+- Maybe use Render or Koyeb (use the free plan). Use Vercel for frontend.
+
+- PRD - Describes what you want to build
